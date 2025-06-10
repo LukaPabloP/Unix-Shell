@@ -1,0 +1,85 @@
+Testfälle für das Skript ueb01
+
+---
+
+1. Drei Dateien (txt und pdf)
+Ausgangslage: Dateien: small.txt, large.txt, hallo.pdf
+Erwartetes Ergebnis:
+- Ordner files/ wird erstellt.
+- small.txt und large.txt werden nach files/ kopiert.
+- hallo.pdf wird ignoriert.
+- Datei myfiles wird erstellt und enthält (nach Dateigröße aufsteigend sortiert):
+  small.txt
+  large.txt
+
+---
+
+2. Keine Dateien im aktuellen Ordner
+Ausgangslage: Keine .txt-Dateien vorhanden.
+Erwartetes Ergebnis:
+- Ordner files/ wird erstellt.
+- Es wird nichts kopiert.
+- myfiles wird erstellt und ist leer.
+
+---
+
+3. Nur eine versteckte Datei
+Ausgangslage: Versteckte Datei: .geheim.txt
+Erwartetes Ergebnis:
+- Ordner files/ wird erstellt.
+- .geheim.txt wird ignoriert (weil versteckt).
+- myfiles wird erstellt und ist leer.
+
+---
+
+4. Eine sichtbare und eine versteckte Datei
+Ausgangslage: Dateien: notizen.txt, .backup.txt
+Erwartetes Ergebnis:
+- notizen.txt wird kopiert.
+- .backup.txt wird ignoriert.
+- myfiles enthält:
+  notizen.txt
+
+---
+
+5. Datei mit Leerzeichen im Namen
+Ausgangslage: Datei: projekt plan.txt
+Erwartetes Ergebnis:
+- Datei wird korrekt kopiert (da *.txt).
+- In myfiles könnte der Dateiname je nach ls-Verhalten korrekt oder abgeschnitten sein.
+- Einschränkung: Probleme möglich wegen Leerzeichen im Namen (technisch bekannt).
+
+---
+
+6. Gleich große Dateien
+Ausgangslage: Dateien: alpha.txt, beta.txt, gamma.txt (alle 100 Bytes)
+Erwartetes Ergebnis:
+- Alle Dateien werden kopiert.
+- Reihenfolge in myfiles beliebig (weil gleiche Größe).
+- myfiles enthält z.B.:
+  alpha.txt
+  beta.txt
+  gamma.txt
+
+---
+
+7. Datei ist bereits im Zielordner vorhanden
+Ausgangslage: bericht.txt existiert schon in files/, eine gleichnamige Datei ist auch im Hauptordner.
+Erwartetes Ergebnis:
+- Existierende Datei in files/ wird nicht überschrieben (wegen cp -n).
+- myfiles enthält:
+  bericht.txt
+
+---
+
+8. Zielordner enthält bereits alte Inhalte
+Ausgangslage: files/ enthält schon alte.txt, neue Dateien extra.txt und test.txt im Hauptordner.
+Erwartetes Ergebnis:
+- alte.txt bleibt erhalten.
+- extra.txt und test.txt werden zusätzlich kopiert.
+- myfiles enthält alle drei Dateien, aufsteigend sortiert nach Größe:
+  alte.txt
+  extra.txt
+  test.txt
+
+

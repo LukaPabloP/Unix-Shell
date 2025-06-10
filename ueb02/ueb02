@@ -1,0 +1,32 @@
+#!/bin/sh
+# Auswertung Umfragetool (Mak Masic & Luka Pervan)
+# filtere Fehler, sortiere, speichere alles, gib Feld 2 der letzten Zeile aus
+
+
+# Konflikt produzieren
+
+
+# 1) Fehlerzeilen entfernen
+grep -ivF '<Failed>' | \
+# -i  ⇔ --ignore-case      (ignoriere Groß-/Kleinschreibung)
+# -v  ⇔ --invert-match     (zeige nur Zeilen, die nicht zum Muster passen)
+# -F  ⇔ --fixed-strings    (behandle Suchmuster als feste Zeichenkette)
+
+# 2) Sortieren nach Feld 3 und 1, Duplikate löschen
+sort -t';' -k3,3nr -k1,1nr -u | \
+# -t';'  ⇔ --field-separator=';'  (setze ';' als Feldtrenner)
+# -k3,3 ⇔ --key=3,3               (sortiere nach Feld 3)
+# -n    ⇔ --numeric-sort          (numerisch sortieren)
+# -r    ⇔ --reverse               (in umgekehrter Reihenfolge)
+# -u    ⇔ --unique                (nur erste Zeile pro Schlüssel)
+
+# 3) Ergebnis in Datei und STDOUT schreiben
+tee "$1" | \
+
+# 4) Letzte Zeile auswählen und 2. Feld ausgeben
+tail -n1 | \
+# -n1   ⇔ --lines=1               (gib die letzte Zeile aus)
+cut -d';' -f2
+# -d';' ⇔ --delimiter=';'         (Nutze ';' als Trennzeichen)
+# -f2   ⇔ --fields=2              (gib Feld 2 aus)
+

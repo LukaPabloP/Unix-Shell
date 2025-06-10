@@ -1,0 +1,217 @@
+#!/bin/sh
+
+# Shell-Skript für einen einfachen Taschenrechner
+# 
+# Author: Luka Pervan, Mak Masic
+
+# Strikte Fehlerbehandlung - Beendet das Skript bei Fehlern und behandelt nicht definierte Variablen als Fehler
+set -eu
+
+# Gibt einen Hilfetext zur Verwendung des Skripts aus
+# STDOUT Die formatierte Hilfenachricht
+print_help() {
+  cat << 'EOF'
+Usage:
+
+  ueb03 -h | ueb03 --help
+  
+    prints this help and exits
+  
+  - or -
+  
+  ueb03 NUM1 NUM2 OPERATION [NUM OPERATION] ...
+  
+    provides a simple calculator using a postfix notation. A call consists of
+    two numbers and an operation optionally followed by an arbitrary number
+    of number-operation pairs.
+  
+    NUM1, NUM2 and NUM:
+      any integer (negative, positive and zero)
+  
+    NUM is treated in the same way as NUM2 whereas NUM1 in this case is the
+    result of the previous operation.
+  
+    OPERATION:
+      ADD -> adds NUM1 and NUM2
+      SUB -> subtracts NUM2 from NUM1
+      MUL -> multiplies NUM1 and NUM2
+      DIV -> divides NUM1 by NUM2 and returns the integer result
+      MOD -> divides NUM1 by NUM2 and returns the integer remainder
+      EXP -> raises NUM1 to the power of NUM2
+  
+  At the end of a successful call the history of all intermediate calculations 
+  is printed out to stderr.
+EOF
+}
+
+
+# Berechnet das Ergebnis einer Potenzoperation (Basis^Exponent)
+# $1 Die Basis (ganze Zahl)
+# $2 Der Exponent (nicht-negative ganze Zahl)
+# STDOUT Das Ergebnis der Potenzberechnung
+# RETURN 0 bei erfolgreicher Berechnung
+calculate_exp() {
+  local base="$1"
+  local exponent="$2"
+  
+  # Behandlung des Sonderfalls: Exponent ist 0
+  if [ "$exponent" -eq 0 ]; then
+    echo 1
+    return 0
+  fi
+  
+  # Berechnung der Potenz mit einer Schleife
+  local result="$base"
+  local i=1
+  while [ "$i" -lt "$exponent" ]; do
+    result=$(( result * base ))
+    i=$(( i + 1 ))
+  done
+  
+  echo "$result"
+}
+
+# Funktion für die Verarbeitung einer Operation
+# $1 Die erste Zahl
+# $2 Die zweite Zahl  
+# $3 Die Operation
+# STDOUT Das Ergebnis der Operation
+process_operation() {
+  local num1="$1"
+  local num2="$2"
+  local operation="$3"
+  
+  case "$operation" in
+    'ADD')
+      echo $(( num1 + num2 ))  # Addition
+      ;;
+    'SUB')
+      echo $(( num1 - num2 ))  # Subtraktion
+      ;;
+    'MUL')
+      echo $(( num1 * num2 ))  # Multiplikation
+      ;;
+    'DIV')
+      if [ "$num2" -eq 0 ]; then
+        error_exit 'Division by zero is not allowed' "$EXIT_DIV_ZERO"  # Division durch Null abfangen
+      fi
+      echo $(( num1 / num2 ))  # Ganzzahlige Division
+      ;;
+    'MOD')
+      if [ "$num2" -eq 0 ]; then
+        error_exit 'Modulo by zero is not allowed' "$EXIT_DIV_ZERO"  # Modulo durch Null abfangen
+      fi
+      echo $(( num1 % num2 ))  # Modulo-Operation (Rest der Division)
+      ;;
+    'EXP')
+      if [ "$num2" -lt 0 ]; then
+        error_exit 'Negative exponent is not allowed' "$EXIT_NEG_EXP"  # Negative Exponenten nicht erlaubt
+      fi
+      calculate_exp "$num1" "$num2"  # Potenzberechnung mit Hilfsfunktion
+      ;;
+    *)
+      error_exit "Unknown operation: $operation" "$EXIT_UNKNOWN_OP"  # Unbekannte Operation abfangen
+      ;;
+  esac
+}
+
+# Behandelt Fehler durch Ausgabe einer Fehlermeldung, des Hilfetexts und Beendigung des Skripts
+# $1 Die Fehlermeldung, die ausgegeben werden soll
+# $2 (Optional) Exit-Code, Default: 1
+# STDERR Die Fehlermeldung und der Hilfetext
+# RETURN Exit-Code > 0
+error_exit() {
+  local message="$1"
+  local exit_code="${2:-1}"  # Default-Exit-Code: 1
+  
+  # Gibt nur die Fehlermeldung und den Hilfetext aus, KEINE HISTORIE
+  echo "Error: $message" >&2
+  print_help >&2
+  exit "$exit_code"
+}
+
+# Hauptprogramm - verarbeitet die Kommandozeilenargumente und führt Berechnungen durch
+# STDIN Keine Eingabe
+# STDOUT Das Ergebnis der Berechnung
+# STDERR Die Berechnungshistorie bei Erfolg oder Fehlermeldungen bei Misserfolg
+# RETURN 0 bei erfolgreicher Berechnung, > 0 bei Fehlern
+
+# Konstanten für Exit-Codes
+EXIT_INVALID_ARGS=1
+EXIT_DIV_ZERO=2
+EXIT_NEG_EXP=3
+EXIT_UNKNOWN_OP=4
+
+# Verarbeitung der Kommandozeilenargumente
+if [ "$#" -eq 0 ]; then
+  error_exit 'Not enough arguments provided' "$EXIT_INVALID_ARGS"
+fi
+
+# Prüfung auf Hilfe-Anfrage
+if [ "$#" -eq 1 ]; then
+  if [ "$1" = '-h' ] || [ "$1" = '--help' ]; then
+    print_help
+    exit 0
+  else
+    error_exit 'Invalid arguments' "$EXIT_INVALID_ARGS"
+  fi
+fi
+
+# Prüfung auf Mindestanzahl von Argumenten
+if [ "$#" -lt 3 ]; then
+  error_exit 'Not enough arguments provided' "$EXIT_INVALID_ARGS"
+fi
+
+# Stellt sicher, dass die Anzahl der Argumente ungerade ist
+if [ "$(( $# % 2 ))" -eq 0 ]; then
+  error_exit 'Invalid number of arguments' "$EXIT_INVALID_ARGS"
+fi
+
+# Speichert alle Berechnungen zur Anzeige am Ende
+HISTORY=''
+
+# Holt die ersten zwei Zahlen und die Operation
+num1="$1"
+num2="$2"
+operation="$3"
+
+# Verarbeitet die erste Operation
+result=$(process_operation "$num1" "$num2" "$operation")
+
+# Fügt die erste Operation zur Historie hinzu
+HISTORY="> $operation $num1 $num2"
+
+# Verarbeitet die verbleibenden Operationen in einer Schleife
+# Für jede zusätzliche Zahl-Operation-Kombination wird die entsprechende Berechnung durchgeführt
+shift 3  # Überspringt die ersten drei Argumente (num1, num2, erste Operation)
+while [ "$#" -gt 0 ]; do
+  # Prüft, ob mindestens eine Zahl und eine Operation vorhanden sind
+  if [ "$#" -lt 2 ]; then
+    error_exit 'Missing arguments' "$EXIT_INVALID_ARGS"
+  fi
+  
+  # Holt die nächste Zahl und Operation
+  num="$1"
+  operation="$2"
+  
+  # Speichert das vorherige Ergebnis für die Historie
+  prev_result="$result"
+  
+  # Verarbeitet die Operation mit der neuen Funktion
+  result=$(process_operation "$result" "$num" "$operation")
+  
+  # Fügt zur Historie hinzu - mit echter Zeilenumbruchzeile
+  HISTORY="$HISTORY
+> $operation $prev_result $num"
+  
+  # Geht zum nächsten Paar über
+  shift 2
+done
+
+# Gibt die Berechnungshistorie auf stderr aus (nur im Erfolgsfall)
+echo "$HISTORY" >&2
+
+# Gibt das Endergebnis auf stdout aus
+echo "$result"
+
+exit 0

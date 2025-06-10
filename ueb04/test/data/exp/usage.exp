@@ -1,0 +1,16 @@
+Usage:
+
+  ueb04 -h | ueb04 --help
+
+    prints this help and exits
+
+  - or -
+
+  ueb04 INPUT OPTION
+
+    INPUT is a valid latex-File (.tex)
+
+    and OPTION is one of
+      -g, --graphics      prints a list of all included graphics
+      -s, --structure     prints the structure of the input file
+      -u, --usedpackages  prints a list of the used packages and their options

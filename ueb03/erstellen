@@ -1,0 +1,69 @@
+#!/bin/sh
+
+# Erstelle benötigte Verzeichnisse
+mkdir -p ./test/data/exp
+
+# Erstelle die Hilfedatei (sollte bereits existieren, aber zur Sicherheit)
+cat > ./test/data/exp/help.exp << 'EOF'
+Usage:
+
+  ueb03 -h | ueb03 --help
+
+    prints this help and exits
+
+  - or -
+
+  ueb03 NUM1 NUM2 OPERATION [NUM OPERATION] ...
+
+    provides a simple calculator using a postfix notation. A call consists of
+    two numbers and an operation optionally followed by an arbitrary number
+    of number-operation pairs.
+
+    NUM1, NUM2 and NUM:
+      any integer (negative, positive and zero)
+
+    NUM is treated in the same way as NUM2 whereas NUM1 in this case is the
+      result of the previous operation.
+
+    OPERATION:
+      ADD -> adds NUM1 and NUM2
+      SUB -> subtracts NUM2 from NUM1
+      MUL -> multiplies NUM1 and NUM2
+      DIV -> divides NUM1 by NUM2 and returns the integer result
+      MOD -> divides NUM1 by NUM2 and returns the integer remainder
+      EXP -> raises NUM1 to the power of NUM2
+
+  At the end of a successful call the history of all intermediate calculations 
+  is printed out to stderr.
+EOF
+
+# Erstelle erwartete Ausgaben für einfache Operationen
+echo "> ADD 1 2" > ./test/data/exp/add_positive.exp
+echo "> ADD -1 -2" > ./test/data/exp/add_negative.exp
+echo "> SUB 5 2" > ./test/data/exp/sub_positive.exp
+echo "> MUL 3 4" > ./test/data/exp/mul_positive.exp
+echo "> DIV 10 2" > ./test/data/exp/div_positive.exp
+echo "> MOD 5 2" > ./test/data/exp/mod_rest.exp
+echo "> EXP 2 3" > ./test/data/exp/exp_positive.exp
+echo "> EXP 5 0" > ./test/data/exp/exp_zero.exp
+
+# Erstelle erwartete Ausgaben für mehrere Operationen
+cat > ./test/data/exp/multiple_add.exp << EOF
+> ADD 1 2
+> ADD 3 4
+> ADD 7 2
+EOF
+
+cat > ./test/data/exp/multiple_ops.exp << EOF
+> ADD 1 2
+> SUB 3 2
+> MUL 1 7
+> EXP 7 2
+EOF
+
+cat > ./test/data/exp/div_mod.exp << EOF
+> DIV 10 2
+> MOD 5 3
+EOF
+
+echo "Alle erwarteten Ausgabedateien wurden erstellt."

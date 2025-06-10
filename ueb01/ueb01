@@ -1,0 +1,20 @@
+#!/bin/sh
+# Autoren: Mak Masic und Luka Pervan
+# Legt (falls nötig) den Ordner „files“ an, kopiert alle .txt-Dateien dort hinein (ohne Überschreiben) und listet den Inhalt nach aufsteigender Größe in „myfiles“ auf.
+# Erstmal sicherstellen, dass der Ordner "files" existiert. Wenn er schon da ist, passiert nix.
+#(-p): legt das Zielverzeichnis einschließlich aller benötigten übergeordneten Verzeichnisse an; schlägt nicht fehl, wenn das Verzeichnis bereits existiert.
+mkdir -p files
+
+# Jetzt alle .txt-Dateien in den "files"-Ordner kopieren, aber nur, wenn sie dort noch nicht existieren.
+# Fehler (wie "Datei nicht gefunden") einfach ignorieren.
+#(-n): überschreibt keine bereits existierenden Zieldateien
+cp -n  *.txt files/ 2>/dev/null
+
+# Danach alle Dateien im "files"-Ordner nach Größe sortieren (größte zuerst),
+# mit tac dann die Reihenfolge umdrehen (kleinste zuerst).
+# Ergebnis in die Datei "myfiles" schreiben, alte "myfiles" wird dabei überschrieben.
+#(-1): zeigt jede Datei bzw. jedes Verzeichnis auf einer eigenen Zeile an
+#(-S): sortiert die Einträge nach ihrer Dateigröße
+#(-r): kehrt die Sortierreihenfolge um (hier also von kleinster zu größter Datei)
+ls -1Sr files >  myfiles
+

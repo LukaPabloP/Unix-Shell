@@ -1,0 +1,3 @@
+#!/bin/bash
+export DUT="./ueb03"  # Pfad zum zu testenden Skript anpassen
+./test/bats/bin/bats "$@"

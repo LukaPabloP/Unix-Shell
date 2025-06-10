@@ -1,0 +1,131 @@
+#!/bin/sh
+
+# Funktion zur Ausgabe des Hilfetextes
+print_help() {
+    cat << 'EOF'
+Usage:
+
+  ueb04 -h | ueb04 --help
+
+    prints this help and exits
+
+  - or -
+
+  ueb04 INPUT OPTION
+
+    INPUT is a valid latex-File (.tex)
+
+    and OPTION is one of
+      -g, --graphics      prints a list of all included graphics
+      -s, --structure     prints the structure of the input file
+      -u, --usedpackages  prints a list of the used packages and their options
+EOF
+}
+
+# Funktion zur Ausgabe von Fehlermeldungen mit Hilfetext auf stderr
+print_error() {
+    echo "Error: $1" >&2
+    print_help >&2
+    exit 1
+}
+
+# Funktion zur Ausgabe der Grafiken
+print_graphics() {
+    input_file="$1"
+    
+    # Entferne Kommentare und extrahiere alle includegraphics-Befehle
+    sed 's/\([^\\]\|^\)%.*$/\1/' "$input_file" | \
+    sed -n 's/.*\\includegraphics\(\[[^]]*\]\)\?{\([^}]*\)}.*/\2/p'
+}
+
+# Funktion zur Ausgabe der Struktur
+print_structure() {
+    input_file="$1"
+    
+    # Einmaliger Durchlauf durch die Datei - viel effizienter!
+    sed 's/\([^\\]\|^\)%.*$/\1/' "$input_file" | \
+    sed -n -e '/\\chapter\*\?{/{s/.*\\chapter\*\?{\([^}]*\)}.*/\1/p;}' \
+           -e '/\\section\*\?{/{s/.*\\section\*\?{\([^}]*\)}.*/|-- \1/p;}' \
+           -e '/\\subsection\*\?{/{s/.*\\subsection\*\?{\([^}]*\)}.*/    |-- \1/p;}'
+}
+
+# Funktion zur Ausgabe der verwendeten Pakete
+print_packages() {
+    input_file="$1"
+    temp_file=$(mktemp)
+    
+    # Entferne Kommentare und normalisiere usepackage-Befehle
+    sed 's/\([^\\]\|^\)%.*$/\1/' "$input_file" | \
+    tr '\n' ' ' | \
+    sed 's/\\usepackage/\n\\usepackage/g' | \
+    grep '^\\usepackage' | \
+    sed 's/[ \t\n]//g' | \
+    sed -e 's/.*\\usepackage\[\([^]]*\)\]{\([^}]*\)}.*/\2:\1/' \
+        -e 's/.*\\usepackage{\([^}]*\)}.*/\1:/' | \
+    sort > "$temp_file"
+    
+    cat "$temp_file"
+    rm -f "$temp_file"
+}
+
+# Hauptprogramm
+main() {
+    # Überprüfe Anzahl der Parameter
+    if [ $# -eq 0 ]; then
+        print_error "No arguments provided"
+    fi
+    
+    # Behandle Hilfe-Option
+    if [ $# -eq 1 ] && { [ "$1" = "-h" ] || [ "$1" = "--help" ]; }; then
+        print_help
+        exit 0
+    fi
+    
+    # Überprüfe auf zusätzliche Parameter bei Hilfe-Anfrage
+    if [ $# -gt 1 ] && { [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$2" = "-h" ] || [ "$2" = "--help" ]; }; then
+        print_error "Help option cannot be combined with other arguments"
+    fi
+    
+    # Überprüfe korrekte Anzahl Parameter
+    if [ $# -ne 2 ]; then
+        print_error "Invalid number of arguments"
+    fi
+    
+    input_file="$1"
+    option="$2"
+    
+    # Überprüfe ob Datei existiert
+    if [ ! -f "$input_file" ]; then
+        print_error "File '$input_file' not found"
+    fi
+    
+    # Überprüfe ob Datei lesbar ist
+    if [ ! -r "$input_file" ]; then
+        print_error "File '$input_file' is not readable"
+    fi
+    
+    # Überprüfe .tex-Endung
+    case "$input_file" in
+        *.tex) ;;
+        *) print_error "Input file must have .tex extension" ;;
+    esac
+    
+    # Verarbeite Option
+    case "$option" in
+        "-g"|"--graphics")
+            print_graphics "$input_file"
+            ;;
+        "-s"|"--structure")
+            print_structure "$input_file"
+            ;;
+        "-u"|"--usedpackages")
+            print_packages "$input_file"
+            ;;
+        *)
+            print_error "Unknown option '$option'"
+            ;;
+    esac
+}
+
+# Starte Hauptprogramm
+main "$@"
